@@ -20,6 +20,29 @@
 //using namespace pugi;
 //xml_document doc;
 #if 1
+
+static bool get_exe_path(char *path) {
+#ifdef __linux__
+    return (readlink("/proc/self/exe", path, linebufsize) != -1);
+#elif __APPLE__
+    uint32_t size = linebufsize;
+    return (_NSGetExecutablePath(path, &size) == 0);
+#else
+    fprintf(stderr, "Not supported OS\n");
+    return false;
+#endif
+}
+
+static void get_dir_name(char *path) {
+#ifdef __linux__
+    dirname(path);
+#elif __APPLE__
+    strcpy(path, dirname(path));
+#else
+    fprintf(stderr, "Not supported OS\n");
+#endif
+}
+
  bool GetChipDbPath(char *Path)
 {
     FILE* fp = NULL;
@@ -28,13 +51,14 @@
 		return false;
 	
 	memset(Path, 0, linebufsize);
-    if (readlink("/proc/self/exe", Path, 512) != -1) {
-        dirname(Path);
+
+    if (get_exe_path(Path)) {
+        get_dir_name(Path);
         strcat(Path, "/ChipInfoDb.dedicfg");
         if ((fp = fopen(Path, "rt")) == NULL) {
             // ChipInfoDb.dedicfg not in program directory
-            dirname(Path);
-            dirname(Path);
+            get_dir_name(Path);
+            get_dir_name(Path);
             strcat(Path, "/share/DediProg/ChipInfoDb.dedicfg");
             //			printf("%s\n",Path);
             if ((fp = fopen(Path, "rt")) == NULL)
